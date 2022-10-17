@@ -43,6 +43,8 @@ const (
 	// Note: HACBS detection by configmap is temporary solution, will be changed to detection based
 	// on APIBinding API in KCP environment.
 	HACBSConfigMapName = "hacbs"
+
+	ServiceAccount = "pipeline"
 )
 
 // Holds data that needs to be queried from the cluster in order for the gitops generation function to work
@@ -56,6 +58,8 @@ type GitopsConfig struct {
 	PipelinesAsCodeCredentials map[string][]byte
 
 	IsHACBS bool
+
+	ServiceAccountPullSecrets []corev1.LocalObjectReference
 }
 
 func PrepareGitopsConfig(ctx context.Context, cli client.Client, component appstudiov1alpha1.Component) GitopsConfig {
@@ -71,6 +75,8 @@ func PrepareGitopsConfig(ctx context.Context, cli client.Client, component appst
 	}
 
 	data.PipelinesAsCodeCredentials = getPipelinesAsCodeConfigurationSecretData(ctx, cli, component)
+
+	data.ServiceAccountPullSecrets = getServiceAccountPullSecrets(ctx, cli, component)
 
 	return data
 }
@@ -121,4 +127,13 @@ func getPipelinesAsCodeConfigurationSecretData(ctx context.Context, cli client.C
 		return make(map[string][]byte)
 	}
 	return pacSecret.Data
+}
+
+func getServiceAccountPullSecrets(ctx context.Context, cli client.Client, component appstudiov1alpha1.Component) []corev1.LocalObjectReference {
+	serviceAccount := &corev1.ServiceAccount{}
+	err := cli.Get(ctx, types.NamespacedName{Name: PipelinesAsCodeSecretName, Namespace: component.Namespace}, serviceAccount)
+	if err != nil {
+		return []corev1.LocalObjectReference{}
+	}
+	return serviceAccount.ImagePullSecrets
 }

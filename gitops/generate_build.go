@@ -172,12 +172,14 @@ func DetermineBuildExecution(component appstudiov1alpha1.Component, params []tek
 			},
 		)
 		// imagePullSecret to be set in the podTemplate used by chains
-		pipelineRunSpec.PodTemplate = &tektonapi.PodTemplate{
-			ImagePullSecrets: []corev1.LocalObjectReference{
-				{
-					Name: gitopsprepare.RegistrySecret,
-				},
+		podSecrets := []corev1.LocalObjectReference{
+			{
+				Name: gitopsprepare.RegistrySecret,
 			},
+		}
+		podSecrets = append(podSecrets, gitopsConfig.ServiceAccountPullSecrets...)
+		pipelineRunSpec.PodTemplate = &tektonapi.PodTemplate{
+			ImagePullSecrets: podSecrets,
 		}
 	}
 
